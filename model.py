@@ -5,14 +5,15 @@ https://en.wikipedia.org/wiki/Compositional_pattern-producing_network
 
 @hardmaru, 2016
 
+Updated @brianrice2, 2020
+
 '''
-from __future__ import absolute_import, division, print_function, unicode_literals
+# from __future__ import absolute_import, division, print_function, unicode_literals
 
 import numpy as np
 import tensorflow as tf
 from ops import *
-from keras.models import Model
-from keras import backend as K
+
         
 class CPPN():
     def __init__(self, batch_size = 1, z_dim = 32, c_dim = 1,
@@ -49,6 +50,7 @@ class CPPN():
         
         self.layer_fc = FullyConnected(net_size)
         self.layer_fc_cdim = FullyConnected(self.c_dim)
+        
         
     def _coordinates(self, x_dim = 32, y_dim = 32, scale = 1.0):
         '''
@@ -119,8 +121,8 @@ class CPPN():
         '''
         H = tf.nn.tanh(U)
         for i in range(3):
-            H = tf.nn.tanh(ops.fully_connected(H, net_size, 'g_tanh_'+str(i)))
-        output = tf.sigmoid(ops.fully_connected(H, self.c_dim, 'g_final'))
+            H = tf.nn.tanh(self.layer_fc(H, with_bias=True))
+        output = tf.sigmoid(self.layer_fc_cdim(H, with_bias=True))
         '''
         
         ###
@@ -129,8 +131,8 @@ class CPPN():
         '''
         H = tf.nn.tanh(U)
         for i in range(3):
-            H = tf.nn.tanh(ops.fully_connected(H, net_size, 'g_tanh_'+str(i)))
-        output = tf.sqrt(1.0-tf.abs(tf.tanh(ops.fully_connected(H, self.c_dim, 'g_final'))))
+            H = tf.nn.tanh(self.layer_fc(H, with_bias=True))
+        output = tf.sqrt(1.0-tf.abs(tf.tanh(self.layer_fc_cdim(H, with_bias=True))))
         '''
         
         ###
@@ -138,12 +140,12 @@ class CPPN():
         ###
         '''
         H = tf.nn.tanh(U)
-        H = tf.nn.softplus(ops.fully_connected(H, net_size, 'g_softplus_1'))
-        H = tf.nn.tanh(ops.fully_connected(H, net_size, 'g_tanh_2'))
-        H = tf.nn.softplus(ops.fully_connected(H, net_size, 'g_softplus_2'))
-        H = tf.nn.tanh(ops.fully_connected(H, net_size, 'g_tanh_2'))
-        H = tf.nn.softplus(ops.fully_connected(H, net_size, 'g_softplus_2'))
-        output = tf.sigmoid(ops.fully_connected(H, self.c_dim, 'g_final'))
+        H = tf.nn.softplus(self.layer_fc(H, with_bias=True))
+        H = tf.nn.tanh(self.layer_fc(H, with_bias=True))
+        H = tf.nn.softplus(self.layer_fc(H, with_bias=True))
+        H = tf.nn.tanh(self.layer_fc(H, with_bias=True))
+        H = tf.nn.softplus(self.layer_fc(H, with_bias=True))
+        output = tf.sigmoid(self.layer_fc_cdim(H, with_bias=True))
         '''
         
         ###
@@ -151,10 +153,10 @@ class CPPN():
         ###
         '''
         H = tf.nn.tanh(U)
-        H = tf.nn.softplus(fully_connected(H, net_size, 'g_softplus_1'))
-        H = tf.nn.tanh(fully_connected(H, net_size, 'g_tanh_2'))
-        H = tf.nn.softplus(fully_connected(H, net_size, 'g_softplus_2'))
-        output = 0.5 * tf.sin(fully_connected(H, self.c_dim, 'g_final')) + 0.5
+        H = tf.nn.softplus(self.layer_fc(H, with_bias=True))
+        H = tf.nn.tanh(self.layer_fc(H, with_bias=True))
+        H = tf.nn.softplus(self.layer_fc(H, with_bias=True))
+        output = 0.5 * tf.sin(self.layer_fc_cdim(H, self.with_bias=True)) + 0.5
         '''
         
         H = tf.nn.tanh(U_output)
@@ -169,14 +171,14 @@ class CPPN():
         '''
         H = tf.nn.tanh(U)
         for i in range(3):
-            H = H+tf.nn.tanh(ops.fully_connected(H, net_size, g_tanh_'+str(i)))
-        output = tf.sigmoid(ops.fully_connected(H, self.c_dim, 'g_final'))
+            H = H + tf.nn.tanh(self.layer_fc(H, with_bias=True))
+        output = tf.sigmoid(self.layer_fc_cdim(H, with_bias=True))
         '''
         
-        '''
-        The final hidden later is pass thru a fully connected sigmoid later, so outputs -> (0, 1)
-        Also, the output has a dimention of c_dim, so can be monotone or RGB
-        '''
+        
+        # The final hidden later is passed through a fully connected sigmoid
+        # layer, so outputs -> (0, 1)
+        # Also, the output has a dimension of c_dim, so can be monotone or RGB
         result = tf.reshape(output, [self.batch_size, y_dim, x_dim, self.c_dim])
         
         return result
@@ -193,8 +195,8 @@ class CPPN():
             z = np.random.uniform(-1.0, 1.0, size=(self.batch_size, self.z_dim)).astype(np.float32)
         self.z = z
         
-        # Note: This maps to mean of distribution, we could alternatively
-        # sample from Gaussian distribution
+        # Note: This maps to mean of distribution 
+        # We could alternatively sample from Gaussian distribution
         
         x_vec, y_vec, r_vec = self._coordinates(x_dim, y_dim, scale = scale)
         self.x = x_vec
