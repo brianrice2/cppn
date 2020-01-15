@@ -1,4 +1,4 @@
-# CPPN - TensorFlow
+# CPPN
 
 Tensorflow 2.0 / Keras implementation of [hardmaru's CPPN setup][1].
 
