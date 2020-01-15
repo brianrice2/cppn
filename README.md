@@ -1,6 +1,6 @@
 # CPPN
 
-Tensorflow 2.0 / Keras implementation of [hardmaru's CPPN setup][1] / [blog post][2].
+Tensorflow 2.0 / Keras implementation of [hardmaru's CPPN work][1] / [accompanying blog post][2].
 
 Also switched to imageio since images2gif is no longer supported.
 
