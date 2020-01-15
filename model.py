@@ -43,13 +43,13 @@ class CPPN():
         self.n_points = x_dim * y_dim
         self.x_vec, self.y_vec, self.r_vec = self._coordinates(x_dim, y_dim, scale)
         
-        self.layer_z = FullyConnected(net_size)
+        self.layer_z = FullyConnected(net_size, with_bias=True)
         self.layer_x = FullyConnected(net_size)
         self.layer_y = FullyConnected(net_size)
         self.layer_r = FullyConnected(net_size)
         
-        self.layer_fc = FullyConnected(net_size)
-        self.layer_fc_cdim = FullyConnected(self.c_dim)
+        self.layer_fc = FullyConnected(net_size, with_bias=True)
+        self.layer_fc_cdim = FullyConnected(self.c_dim, with_bias=True)
         
         
     def _coordinates(self, x_dim = 32, y_dim = 32, scale = 1.0):
@@ -90,23 +90,17 @@ class CPPN():
         y_unroll = tf.reshape(self.y, [self.batch_size*n_points, 1])
         r_unroll = tf.reshape(self.r, [self.batch_size*n_points, 1])
         
-        '''
-        U = ops.fully_connected(z_unroll, net_size, 'g_0_z') + \
-            ops.fully_connected(x_unroll, net_size, 'g_0_x', with_bias = False) + \
-            ops.fully_connected(y_unroll, net_size, 'g_0_y', with_bias = False) + \
-            ops.fully_connected(r_unroll, net_size, 'g_0_r', with_bias = False)
-        '''
         
         if not reuse:
             # reinitialize fully connected layers
-            self.layer_z = FullyConnected(net_size)
+            self.layer_z = FullyConnected(net_size, with_bias=True)
             self.layer_x = FullyConnected(net_size)
             self.layer_y = FullyConnected(net_size)
             self.layer_r = FullyConnected(net_size)
-            self.layer_fc = FullyConnected(net_size)
-            self.layer_fc_cdim = FullyConnected(self.c_dim)
+            self.layer_fc = FullyConnected(net_size, with_bias=True)
+            self.layer_fc_cdim = FullyConnected(self.c_dim, with_bias=True)
         
-        U_output = self.layer_z(z_unroll, with_bias=True) + self.layer_x(x_unroll) \
+        U_output = self.layer_z(z_unroll) + self.layer_x(x_unroll) \
                    + self.layer_y(y_unroll) + self.layer_r(r_unroll)
         
         
@@ -117,64 +111,62 @@ class CPPN():
         
         ###
         ### Example: 3 layers of tanh() layers, with net_size = 32 activations/layer
+        ### Higher number of loops produces more complex/detailed images,
+        ### but gets to be too much by around 8
         ###
-        '''
-        H = tf.nn.tanh(U)
-        for i in range(3):
-            H = tf.nn.tanh(self.layer_fc(H, with_bias=True))
-        output = tf.sigmoid(self.layer_fc_cdim(H, with_bias=True))
-        '''
+        
+        H = tf.nn.tanh(U_output)
+        for i in range(5):
+            H = tf.nn.tanh(self.layer_fc(H))
+        output = tf.sigmoid(self.layer_fc_cdim(H))
+        
         
         ###
         ### Similar to example above, but instead the output is
         ### a weird function rather than just the sigmoid
+        ### Seems to output a 'dark-themed' picture
+        ### 
         '''
-        H = tf.nn.tanh(U)
+        H = tf.nn.tanh(U_output)
         for i in range(3):
-            H = tf.nn.tanh(self.layer_fc(H, with_bias=True))
-        output = tf.sqrt(1.0-tf.abs(tf.tanh(self.layer_fc_cdim(H, with_bias=True))))
+            H = tf.nn.tanh(self.layer_fc(H))
+        output = tf.sqrt(1.0-tf.abs(tf.tanh(self.layer_fc_cdim(H))))
         '''
         
         ###
         ### Example: mixing softplus and tanh layers, with net_size = 32 activations/layer
         ###
         '''
-        H = tf.nn.tanh(U)
-        H = tf.nn.softplus(self.layer_fc(H, with_bias=True))
-        H = tf.nn.tanh(self.layer_fc(H, with_bias=True))
-        H = tf.nn.softplus(self.layer_fc(H, with_bias=True))
-        H = tf.nn.tanh(self.layer_fc(H, with_bias=True))
-        H = tf.nn.softplus(self.layer_fc(H, with_bias=True))
-        output = tf.sigmoid(self.layer_fc_cdim(H, with_bias=True))
+        H = tf.nn.tanh(U_output)
+        H = tf.nn.softplus(self.layer_fc(H))
+        H = tf.nn.tanh(self.layer_fc(H))
+        H = tf.nn.softplus(self.layer_fc(H))
+        H = tf.nn.tanh(self.layer_fc(H))
+        H = tf.nn.softplus(self.layer_fc(H))
+        output = tf.sigmoid(self.layer_fc_cdim(H))
         '''
         
         ###
         ### Example: mixing sinusoids, tanh and multiple softplus layers
         ###
         '''
-        H = tf.nn.tanh(U)
-        H = tf.nn.softplus(self.layer_fc(H, with_bias=True))
-        H = tf.nn.tanh(self.layer_fc(H, with_bias=True))
-        H = tf.nn.softplus(self.layer_fc(H, with_bias=True))
-        output = 0.5 * tf.sin(self.layer_fc_cdim(H, self.with_bias=True)) + 0.5
-        '''
-        
         H = tf.nn.tanh(U_output)
-        H = tf.nn.softplus(self.layer_fc(H, with_bias=True))
-        H = tf.nn.tanh(self.layer_fc(H, with_bias=True))
-        H = tf.nn.softplus(self.layer_fc(H, with_bias=True))
-        output = 0.5 * tf.sin(self.layer_fc_cdim(H, with_bias=True)) + 0.5
+        H = tf.nn.softplus(self.layer_fc(H))
+        H = tf.nn.tanh(self.layer_fc(H))
+        H = tf.nn.softplus(self.layer_fc(H))
+        output = 0.5 * tf.sin(self.layer_fc_cdim(H)) + 0.5
+        '''
         
         ###
         ### Example: residual network of 4 tanh() layers
+        ### This layer produces more soft-formed images
         ###
         '''
-        H = tf.nn.tanh(U)
-        for i in range(3):
-            H = H + tf.nn.tanh(self.layer_fc(H, with_bias=True))
-        output = tf.sigmoid(self.layer_fc_cdim(H, with_bias=True))
+        H = tf.nn.tanh(U_output)
+        for i in range(7):
+            H = H + tf.nn.tanh(self.layer_fc(H))
+        output = tf.sigmoid(self.layer_fc_cdim(H))
         '''
-        
         
         # The final hidden later is passed through a fully connected sigmoid
         # layer, so outputs -> (0, 1)
