@@ -4,7 +4,7 @@ Implementation of Compositional Pattern Producing Networks in Tensorflow
 https://en.wikipedia.org/wiki/Compositional_pattern-producing_network
 
 @hardmaru, 2016
-updated brianrice2, 2020
+Updated @brianrice2, 2020
 
 Sampler Class
 
@@ -36,7 +36,7 @@ pylab.rcParams['figure.figsize'] = (10.0, 10.0)
 
 class Sampler():
     def __init__(self, z_dim = 8, c_dim = 1, scale = 10.0, net_size = 32):
-        self.cppn = CPPN(z_dim = z_dim, c_dim = c_dim, scale = scale, net_size = net_size)
+        self.cppn = CPPN(z_dim=z_dim, c_dim=c_dim, scale=scale, net_size=net_size)
         # saves most recent z here, in case we find a nice image and want the z-vec
         self.z = self.generate_z()
         
@@ -72,7 +72,7 @@ class Sampler():
         plt.show()
         
     def save_png(self, image_data, filename):
-        img_data = np.array(1-image_data)
+        img_data = np.array(1 - image_data)
         y_dim = image_data.shape[0]
         x_dim = image_data.shape[1]
         c_dim = self.cppn.c_dim
@@ -108,7 +108,7 @@ class Sampler():
         '''
         this saves an animated gif from two latent states z1 and z2
         n_frame: number of states in between z1 and z2 morphing effect, exclusive of z1 and z2
-        duration1, duration2, control how long z1 and z2 are shown.
+        duration1 and duration2 control how long z1 and z2 are shown.
         duration controls frame speed, in seconds
         '''
         delta_z = (z2 - z1) / (n_frame + 1)
@@ -120,14 +120,14 @@ class Sampler():
             images.append(self.to_image(self.generate(z, x_dim, y_dim, scale)))
             print("processing image", i+1)
         
-        durations = [duration1] + [duration]*n_frame + [duration2]
+        durations = [duration1] + ([duration] * n_frame) + [duration2]
         
         if reverse: # go backwards in time back to the first state
             revImages = list(images)
             revImages.reverse()
             revImages = revImages[1:]
             images += revImages
-            durations = durations + [duration]*n_frame + [duration1]
+            durations = durations + ([duration] * n_frame) + [duration1]
         
         print("writing gif file...")
         imageio.mimsave('./' + filename, images)

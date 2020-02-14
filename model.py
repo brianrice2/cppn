@@ -4,7 +4,6 @@ Implementation of Compositional Pattern Producing Networks in Tensorflow
 https://en.wikipedia.org/wiki/Compositional_pattern-producing_network
 
 @hardmaru, 2016
-
 Updated @brianrice2, 2020
 
 '''
@@ -12,7 +11,7 @@ Updated @brianrice2, 2020
 
 import numpy as np
 import tensorflow as tf
-from ops import *
+import ops
 
         
 class CPPN():
@@ -43,13 +42,13 @@ class CPPN():
         self.n_points = x_dim * y_dim
         self.x_vec, self.y_vec, self.r_vec = self._coordinates(x_dim, y_dim, scale)
         
-        self.layer_z = FullyConnected(net_size, with_bias=True)
-        self.layer_x = FullyConnected(net_size)
-        self.layer_y = FullyConnected(net_size)
-        self.layer_r = FullyConnected(net_size)
+        self.layer_z = ops.FullyConnected(net_size)
+        self.layer_x = ops.FullyConnected(net_size)
+        self.layer_y = ops.FullyConnected(net_size)
+        self.layer_r = ops.FullyConnected(net_size)
         
-        self.layer_fc = FullyConnected(net_size, with_bias=True)
-        self.layer_fc_cdim = FullyConnected(self.c_dim, with_bias=True)
+        self.layer_fc = ops.FullyConnected(net_size)
+        self.layer_fc_cdim = ops.FullyConnected(self.c_dim)
         
         
     def _coordinates(self, x_dim = 32, y_dim = 32, scale = 1.0):
@@ -93,14 +92,14 @@ class CPPN():
         
         if not reuse:
             # reinitialize fully connected layers
-            self.layer_z = FullyConnected(net_size, with_bias=True)
-            self.layer_x = FullyConnected(net_size)
-            self.layer_y = FullyConnected(net_size)
-            self.layer_r = FullyConnected(net_size)
-            self.layer_fc = FullyConnected(net_size, with_bias=True)
-            self.layer_fc_cdim = FullyConnected(self.c_dim, with_bias=True)
+            self.layer_z = ops.FullyConnected(net_size)
+            self.layer_x = ops.FullyConnected(net_size)
+            self.layer_y = ops.FullyConnected(net_size)
+            self.layer_r = ops.FullyConnected(net_size)
+            self.layer_fc = ops.FullyConnected(net_size)
+            self.layer_fc_cdim = ops.FullyConnected(self.c_dim)
         
-        U_output = self.layer_z(z_unroll) + self.layer_x(x_unroll) \
+        U_output = self.layer_z(z_unroll, with_bias=True) + self.layer_x(x_unroll) \
                    + self.layer_y(y_unroll) + self.layer_r(r_unroll)
         
         
@@ -117,8 +116,8 @@ class CPPN():
         
         H = tf.nn.tanh(U_output)
         for i in range(5):
-            H = tf.nn.tanh(self.layer_fc(H))
-        output = tf.sigmoid(self.layer_fc_cdim(H))
+            H = tf.nn.tanh(self.layer_fc(H, with_bias=True))
+        output = tf.sigmoid(self.layer_fc_cdim(H, with_bias=True))
         
         
         ###
@@ -129,8 +128,8 @@ class CPPN():
         '''
         H = tf.nn.tanh(U_output)
         for i in range(3):
-            H = tf.nn.tanh(self.layer_fc(H))
-        output = tf.sqrt(1.0-tf.abs(tf.tanh(self.layer_fc_cdim(H))))
+            H = tf.nn.tanh(self.layer_fc(H, with_bias=True))
+        output = tf.sqrt(1.0-tf.abs(tf.tanh(self.layer_fc_cdim(H, with_bias=True))))
         '''
         
         ###
@@ -138,12 +137,12 @@ class CPPN():
         ###
         '''
         H = tf.nn.tanh(U_output)
-        H = tf.nn.softplus(self.layer_fc(H))
-        H = tf.nn.tanh(self.layer_fc(H))
-        H = tf.nn.softplus(self.layer_fc(H))
-        H = tf.nn.tanh(self.layer_fc(H))
-        H = tf.nn.softplus(self.layer_fc(H))
-        output = tf.sigmoid(self.layer_fc_cdim(H))
+        H = tf.nn.softplus(self.layer_fc(H, with_bias=True))
+        H = tf.nn.tanh(self.layer_fc(H, with_bias=True))
+        H = tf.nn.softplus(self.layer_fc(H, with_bias=True))
+        H = tf.nn.tanh(self.layer_fc(H, with_bias=True))
+        H = tf.nn.softplus(self.layer_fc(H, with_bias=True))
+        output = tf.sigmoid(self.layer_fc_cdim(H, with_bias=True))
         '''
         
         ###
@@ -151,10 +150,10 @@ class CPPN():
         ###
         '''
         H = tf.nn.tanh(U_output)
-        H = tf.nn.softplus(self.layer_fc(H))
-        H = tf.nn.tanh(self.layer_fc(H))
-        H = tf.nn.softplus(self.layer_fc(H))
-        output = 0.5 * tf.sin(self.layer_fc_cdim(H)) + 0.5
+        H = tf.nn.softplus(self.layer_fc(H, with_bias=True))
+        H = tf.nn.tanh(self.layer_fc(H, with_bias=True))
+        H = tf.nn.softplus(self.layer_fc(H, with_bias=True))
+        output = 0.5 * tf.sin(self.layer_fc_cdim(H, with_bias=True)) + 0.5
         '''
         
         ###
@@ -164,8 +163,8 @@ class CPPN():
         '''
         H = tf.nn.tanh(U_output)
         for i in range(7):
-            H = H + tf.nn.tanh(self.layer_fc(H))
-        output = tf.sigmoid(self.layer_fc_cdim(H))
+            H = H + tf.nn.tanh(self.layer_fc(H, with_bias=True))
+        output = tf.sigmoid(self.layer_fc_cdim(H, with_bias=True))
         '''
         
         # The final hidden later is passed through a fully connected sigmoid
@@ -190,7 +189,7 @@ class CPPN():
         # Note: This maps to mean of distribution 
         # We could alternatively sample from Gaussian distribution
         
-        x_vec, y_vec, r_vec = self._coordinates(x_dim, y_dim, scale = scale)
+        x_vec, y_vec, r_vec = self._coordinates(x_dim, y_dim, scale=scale)
         self.x = x_vec
         self.y = y_vec
         self.r = r_vec
