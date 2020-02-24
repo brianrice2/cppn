@@ -46,12 +46,12 @@ class CPPN():
         self.layer_fc = ops.FullyConnected(net_size)
         self.layer_fc_cdim = ops.FullyConnected(self.c_dim)
         
-    def get_coordinates(self, x_dim = 32, y_dim = 32, scale = 1.0):
+    def get_coordinates(self, x_dim=32, y_dim=32, scale=1.0):
         '''
         Calculates and returns a vector of x and y coordinates,
         and corresponding radius from the center of image.
 
-        This is the function c = f(x,y), which defines the
+        This is the function c = f(w,x,y,r), which defines the
         intensity of the image for every point in space.
         '''
         n_points = x_dim * y_dim
