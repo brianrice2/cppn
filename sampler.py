@@ -15,11 +15,8 @@ It shouldn't be that hard to take bits of this code into a normal
 command line environment though if you want to use outside of IPython.
 
 usage:
-
 %run -i sampler.py
-
 sampler = Sampler(z_dim = 4, c_dim = 1, scale = 8.0, net_size = 32)
-
 '''
 
 import numpy as np
@@ -27,16 +24,18 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from PIL import Image
 import pylab
-from model import CPPN
 import imageio
+from model import CPPN
 
 mgc = get_ipython().magic
 mgc(u'matplotlib inline')
 pylab.rcParams['figure.figsize'] = (10.0, 10.0)
 
 class Sampler():
-    def __init__(self, z_dim = 8, c_dim = 1, scale = 10.0, net_size = 32):
-        self.cppn = CPPN(z_dim=z_dim, c_dim=c_dim, scale=scale, net_size=net_size)
+    def __init__(self, x_dim=256, y_dim=256, z_dim=8, c_dim=1, scale=10.0, net_size=32):
+        self.cppn = CPPN(x_dim=x_dim, y_dim=y_dim, z_dim=z_dim,
+                         c_dim=c_dim, scale=scale, net_size=net_size)
+
         # saves most recent z here, in case we find a nice image and want the z-vec
         self.z = self.generate_z()
         
@@ -44,7 +43,7 @@ class Sampler():
         z = np.random.uniform(-1.0, 1.0, size=(1, self.cppn.z_dim)).astype(np.float32)
         return z
         
-    def generate(self, z = None, x_dim = 1080, y_dim = 1060, scale = 10.0):
+    def generate(self, z=None, x_dim=1080, y_dim=1060, scale=10.0):
         if z is None:
             z = self.generate_z()
         else:
@@ -102,11 +101,11 @@ class Sampler():
         im = Image.fromarray(img_data)
         return im
         
-    def save_anim_gif(self, z1, z2, filename, n_frame = 10, duration1 = 1.0,
-                    duration2 = 1.0, duration = 0.1, x_dim = 512, y_dim = 512,
-                    scale = 10.0, reverse = True):
+    def save_anim_gif(self, z1, z2, filename, n_frame=10, duration1=1.0,
+                    duration2=1.0, duration=0.1, x_dim=512, y_dim=512,
+                    scale=10.0, reverse=True):
         '''
-        this saves an animated gif from two latent states z1 and z2
+        This saves an animated gif from two latent states, z1 and z2.
         n_frame: number of states in between z1 and z2 morphing effect, exclusive of z1 and z2
         duration1 and duration2 control how long z1 and z2 are shown.
         duration controls frame speed, in seconds
@@ -123,10 +122,10 @@ class Sampler():
         durations = [duration1] + ([duration] * n_frame) + [duration2]
         
         if reverse: # go backwards in time back to the first state
-            revImages = list(images)
-            revImages.reverse()
-            revImages = revImages[1:]
-            images += revImages
+            rev_images = list(images)
+            rev_images.reverse()
+            rev_images = rev_images[1:]
+            images += rev_images
             durations = durations + ([duration] * n_frame) + [duration1]
         
         print("writing gif file...")
